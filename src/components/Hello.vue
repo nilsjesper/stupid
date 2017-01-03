@@ -1,8 +1,9 @@
 <template>
   <div class="counter">
-      <div v-if="gameStatus != 'start'"class="status">
-        "{{ currentValue }}"!
-      </div>
+    <div v-if="gameStatus != 'start'"class="status">
+      "{{ currentValue }}"!
+    </div>
+    <div v-else>Click the card to begin...</div>
     <div v-if="gameStatus == 'playing'" class="playing">
       <p>{{ deck.held.length }} down, {{ deck.deck.length}} to go....</p>
     </div>
