@@ -86,10 +86,7 @@ const cardOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
   font-size:16px;
-  width:400px;
-  margin-right:auto;
-  margin-left:auto;
 }
+
 </style>
