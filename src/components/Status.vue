@@ -1,6 +1,14 @@
 <template>
-  <div class="status-panel">
-    <div v-if="gameStatus !== 'start'" class="status">"{{ currentValue }}"!</div>
+  <div
+    class="status-panel"
+    role="status"
+    aria-live="polite"
+  >
+    <template v-if="gameStatus !== 'start'">
+      <!-- Rendered as '"3"!'; the sr-only phrasing reads sensibly aloud. -->
+      <div class="status" aria-hidden="true">"{{ currentValue }}"!</div>
+      <div class="sr-only">Count: {{ currentValue }}</div>
+    </template>
     <div v-else>Click the card to begin...</div>
 
     <div v-if="gameStatus === 'playing'" class="playing">
@@ -29,10 +37,12 @@ defineProps<{
 </script>
 
 <style scoped>
-/* Fixed height so the card does not jump when the message changes. */
+/* min-height reserves space so the card does not jump when the message
+   changes, but still lets the large win/lose text grow instead of
+   overflowing onto the card on narrow screens. */
 .status-panel {
   font-weight: bold;
-  height: 6em;
+  min-height: 6em;
 }
 
 .status {
@@ -42,7 +52,9 @@ defineProps<{
 
 .win,
 .lose {
-  font-size: 5em;
+  /* Fluid so "Holy crap, you won!" fits a 375px phone instead of wrapping
+     into four 80px lines. */
+  font-size: clamp(2rem, 12vw, 5em);
   line-height: 0.9em;
   color: green;
   background-color: rgba(10, 10, 20, 0.1);
@@ -55,5 +67,14 @@ defineProps<{
 
 .restart {
   font-size: 0.5em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 </style>
