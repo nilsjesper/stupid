@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # One grouped PR for routine updates; majors stay separate so a breaking
+    # change is never bundled with unrelated patches.
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
+    ignore:
+      # vue-tsc declares an open-ended peer of typescript ">=5.0.0" but assumes
+      # the TypeScript 5 package layout; TypeScript 7 breaks it with
+      # ERR_PACKAGE_PATH_NOT_EXPORTED. Hold at 5.x until vue-tsc supports 7.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

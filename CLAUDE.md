@@ -4,36 +4,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A single-page Vue 3 app for the card game "Stupid" (page title: "Get Stupid").
-No backend, no router, no state library, no runtime dependencies beyond Vue.
+A single-page Vue 3 + TypeScript app for the card game "Stupid" (page title:
+"Get Stupid"). No backend, no router, no state library, and no runtime
+dependency other than Vue.
 
 ## Commands
 
 ```bash
-npm install
+npm ci               # install from the lockfile (what CI runs)
 npm run dev          # Vite dev server + HMR at localhost:5173
 npm run build        # production bundle into dist/
 npm run preview      # serve the built dist/
 npm test             # vitest, single run
 npm run test:watch   # vitest watch mode
+npm run typecheck    # vue-tsc --noEmit
 npm run lint         # eslint (flat config)
 ```
 
-Single test file: `npx vitest run test/game.test.js`. Single test by name:
+Single test file: `npx vitest run test/game.test.ts`. Single test by name:
 `npx vitest run -t "loses when the count matches"`.
 
-Requires Node 20+. Verified working on Node 26 / npm 11.
+Node 22 is pinned in `.nvmrc`; the `engines` floor is 20. Verified on Node 26.
 
 ## Architecture
 
-`src/main.js` mounts `App.vue` into `#app`. All game state and rules live in
+`src/main.ts` mounts `App.vue` into `#app`. All game state and rules live in
 `App.vue`; the two child components are presentational and take props only.
+Every component uses `<script setup lang="ts">`.
 
 ```
 App.vue          owns state: deck, countIdx, currentValue, currentCard, drawn, gameStatus
-├── Status.vue   count call-out + progress/win/lose text (props only)
-└── Card.vue     the drawn card; emits `draw` on click
-src/deck.js      createDeck() → shuffled 52-card array
+├── Status.vue   count call-out + progress/win/lose text; the aria-live region
+└── Card.vue     the drawn card; a <button> that emits `draw`
+src/deck.ts      createDeck() → shuffled Card[]; Suit/CardValue/Card types
+src/types.ts     GameStatus union
 ```
 
 **Game rules** (all in `App.vue#newCard`): each click pops a card off the
@@ -41,51 +45,62 @@ shuffled deck and advances a count through the cyclic `VALUES` array
 `['A','2',…,'K']`. If the count equals the drawn card's `value`, `gameStatus`
 becomes `'lose'`. Emptying the deck without a collision sets `'win'`. Clicking
 while won or lost calls `reset()` first, so the same click starts a new round.
-`gameStatus` is the single state machine: `start` → `playing` → `win` | `lose`.
 
 A collision on the final card is a **loss**, not a win. The pre-Vite version
 checked win second and so overwrote the loss; the current order is deliberate
-and `test/game.test.js` pins it.
+and `test/game.test.ts` pins it.
 
 **Conventions:**
 
-- Cards are plain `{ value, suit }` objects. `suit` doubles as the CSS class in
-  `Card.vue` (`spade`/`heart`/`diamond`/`club`), so the strings in `src/deck.js`
-  and that stylesheet must stay in sync.
+- `SUITS`/`VALUES` in `src/deck.ts` are `as const`, so `Suit` and `CardValue`
+  are derived unions rather than loose strings. `Suit` also doubles as the CSS
+  class in `Card.vue` and keys its `SYMBOLS`/`SUIT_NAMES` maps, so adding a suit
+  is a type error until every map is updated — that coupling is intentional.
+- `gameStatus` is typed `GameStatus`, which is the state machine:
+  `start` → `playing` → `win` | `lose`.
 - `Card.vue` takes `card: null` before the first draw and renders a blank face.
   Its computed props guard for null — keep that if you add logic there.
-- Child → parent communication is a real emit (`emits: ['draw']`). Do not
-  reintroduce `this.$parent`.
+- Child → parent communication is a real emit (`defineEmits<{ draw: [] }>()`).
+  Do not reintroduce `this.$parent`.
 - `Status.vue` receives `drawn` and `remaining` as plain numbers rather than the
   deck object, so it stays decoupled from how the deck is represented.
-- Options API throughout. Fine to keep; there is no Composition API in the tree
-  to be consistent with.
-- `.status-panel` has a fixed `height: 6em` so the card does not jump when the
-  message swaps between one and three lines.
+- Tests assert against rendered DOM, never `wrapper.vm`. `<script setup>` does
+  not expose internals, and `defineExpose` purely for tests is not worth it.
+- `.status-panel` uses `min-height`, not `height`. A fixed height made the large
+  win/lose text overflow onto the card on narrow screens.
 
-## History worth knowing
+## Accessibility
 
-This was a 2016 `vuejs-templates/webpack` scaffold (webpack 1, Vue 2, PhantomJS,
-Nightwatch/Selenium) until it was migrated to Vite + Vue 3. The old stack still
-compiled and ran on Node 26, but three things had rotted, all from unpinned
-dependencies drifting rather than from the app code:
+The card is a real `<button>`, so Enter and Space work with no key handlers, and
+it carries a state-dependent `aria-label` ("Draw a card" → "Q of hearts. Draw
+again.") because suit is otherwise conveyed only by glyph and colour. The suit
+glyph is `aria-hidden`. `Status.vue` is `role="status" aria-live="polite"` and
+carries a visually-hidden `Count: Q` phrasing, since `"Q"!` reads poorly aloud.
+Specs in `test/components.test.ts` cover all of this — keep them passing.
 
-- `friendly-errors-webpack-plugin@^1.1.2` floated to a webpack-2-only release,
-  so `npm install` needed `--legacy-peer-deps`.
-- webpack 1's ES5-only UglifyJS could not parse ES6 that appeared in
-  `rand-utils` (a transitive dep of `cards`, which pinned it as `"latest"`) or in
-  Vue 2.7's dist.
-- The PhantomJS test runner was dead, and the committed specs still asserted the
-  scaffold's boilerplate rather than anything this app rendered.
+## Dependency pinning (read before bumping anything)
 
-The `cards` package was dropped in the migration and replaced by `src/deck.js`
-(~20 lines) specifically to remove that `"latest"` transitive pin.
+The 2016 version of this repo broke for one reason: **unpinned ranges with no
+lockfile.** `friendly-errors-webpack-plugin@^1.1.2` floated to a webpack-2-only
+release, and `cards` pinned `rand-utils` to `"latest"`, which eventually shipped
+ES6 that webpack 1's UglifyJS could not parse. The lockfile is committed and CI
+uses `npm ci` specifically so this cannot recur.
+
+**`typescript` is held at `^5.9.3` on purpose.** `vue-tsc` declares an
+open-ended peer of `typescript: ">=5.0.0"` but its code assumes the TypeScript 5
+package layout, so npm resolving TypeScript 7 breaks `npm run typecheck` with
+`ERR_PACKAGE_PATH_NOT_EXPORTED` on `./lib/tsc`. `.github/dependabot.yml` ignores
+TypeScript majors for this reason. Revisit when vue-tsc supports TS 7.
+
+## CI
+
+`.github/workflows/ci.yml` runs `npm ci`, lint, typecheck, test, build on every
+branch and PR. `.github/workflows/deploy.yml` publishes `dist/` to GitHub Pages
+on pushes to `master`. `base: './'` in the Vite config keeps asset paths
+relative so the build works from a Pages subpath.
 
 ## Known gaps
 
-- `Card.vue` is a clickable `<div>` with no role, `tabindex`, or key handler, so
-  the game's only interaction is mouse/touch-only and invisible to screen
-  readers. The accessibility tree exposes nothing but the status text.
-- `static/img/card.png` is unreferenced scaffold from the old build and is not
-  served — Vite serves `public/`, not `static/`. Delete it or move it if you
-  ever want a card back.
+`static/img/card.png` is unreferenced scaffold from the old build and is not
+served — Vite serves `public/`, not `static/`. Delete it or move it if you ever
+want a card back.
