@@ -1,82 +1,74 @@
 <template>
   <div id="app">
-    <hello :current-value="currentValue" :game-status="gameStatus" :deck="deck"></hello>
-    <card v-on:click="newCard" :picked-card="currentCard"></card>
+    <Status
+      :current-value="currentValue"
+      :game-status="gameStatus"
+      :drawn="drawn"
+      :remaining="remaining"
+    />
+    <Card :card="currentCard" @draw="newCard" />
   </div>
 </template>
 
-<script>
-// get our components
-import Hello from './components/Hello'
-import Card from './components/Card'
-import Picker from './components/Picker'
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import Status from './components/Status.vue'
+import Card from './components/Card.vue'
+import { createDeck, VALUES, type Card as PlayingCard, type CardValue } from './deck'
+import type { GameStatus } from './types'
 
-// generating a deck
-const cards = require('cards')
-const deck = new cards.PokerDeck()
+const deck = ref<PlayingCard[]>([])
+const countIdx = ref(-1)
+const currentValue = ref<CardValue | ''>('')
+const currentCard = ref<PlayingCard | null>(null)
+const drawn = ref(0)
+const gameStatus = ref<GameStatus>('start')
 
-// Shuffle the deck
-deck.shuffleAll()
+const remaining = computed(() => deck.value.length)
 
-export default {
-  name: 'stupid',
-  components: {
-    Hello,
-    Card,
-    Picker
-  },
-  data () {
-    return {
-      currentIdx: -1,
-      currentValue: '',
-      cardOrder: cardOrder,
-      deck: deck,
-      currentCard: '',
-      gameStatus: 'start'
-    }
-  },
-  methods: {
-    newCard: function () {
-      // If they've hit an endpoint, reshuffle & restart.
-      if (this.gameStatus === 'win' || this.gameStatus === 'lose') {
-        this.reset()
-      }
+// Resets every piece of state, including gameStatus, so it is safe to call
+// from anywhere. newCard() overwrites gameStatus with 'playing' immediately
+// after; without the assignment here, any other caller would leave the
+// win/lose banner rendered over a freshly shuffled deck.
+function reset () {
+  deck.value = createDeck()
+  countIdx.value = -1
+  currentValue.value = ''
+  currentCard.value = null
+  drawn.value = 0
+  gameStatus.value = 'start'
+}
 
-      this.gameStatus = 'playing'
-      this.currentCard = deck.draw()
-      this.setCount()
-      this.checkSame()
+// One click = one draw. The spoken count cycles A..K forever; if it lands on
+// the value you just drew, you lose. Empty the deck without a collision and
+// you win.
+function newCard () {
+  if (gameStatus.value === 'win' || gameStatus.value === 'lose') {
+    reset()
+  }
 
-      // check to see if they've drawn the last card!
-      if (deck.deck.length === 0) {
-        this.gameStatus = 'win'
-      }
-      return true
-    },
-    setCount: function () {
-      if (this.currentIdx === cardOrder.length - 1) {
-        this.currentIdx = 0
-      } else {
-        this.currentIdx++
-      }
-      this.currentValue = cardOrder[this.currentIdx]
-    },
-    checkSame: function () {
-      if (this.currentValue === this.currentCard.value) {
-        this.gameStatus = 'lose'
-      }
-    },
-    reset: function () {
-      this.deck.shuffleAll()
-      this.currentValue = ''
-      this.currentIdx = -1
-    }
+  const card = deck.value.pop()
+  // Unreachable: the deck is refilled by reset() above and 'win' fires the
+  // moment it empties, so it is never empty here. Guards pop()'s T | undefined.
+  if (!card) return
 
+  gameStatus.value = 'playing'
+  currentCard.value = card
+  drawn.value++
+
+  countIdx.value = (countIdx.value + 1) % VALUES.length
+  currentValue.value = VALUES[countIdx.value]
+
+  // A collision on the final card is still a loss. The pre-Vite version
+  // checked win second and so overwrote the loss with a win.
+  if (currentValue.value === card.value) {
+    gameStatus.value = 'lose'
+  } else if (deck.value.length === 0) {
+    gameStatus.value = 'win'
   }
 }
 
-const cardOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-
+reset()
 </script>
 
 <style>
@@ -86,7 +78,6 @@ const cardOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  font-size:16px;
+  font-size: 16px;
 }
-
 </style>

@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  pull_request:
+  # Called as a gate by deploy.yml, so the checks live in exactly one place.
+  workflow_call:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # `npm ci` installs strictly from package-lock.json. The 2016 version of
+      # this repo had no lockfile, which is why its dependency ranges drifted
+      # until the build broke.
+      - run: npm ci
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
