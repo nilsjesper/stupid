@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, type VueWrapper } from '@vue/test-utils'
+import type { Card, CardValue } from '../src/deck'
 
-const { deckRef } = vi.hoisted(() => ({ deckRef: { cards: [] } }))
+const { deckRef } = vi.hoisted(() => ({ deckRef: { cards: [] as Card[] } }))
 
-vi.mock('../src/deck.js', async (importOriginal) => ({
-  ...(await importOriginal()),
+vi.mock('../src/deck', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../src/deck')>()),
   createDeck: () => deckRef.cards.slice()
 }))
 
@@ -12,13 +13,15 @@ import App from '../src/App.vue'
 
 // App draws with pop(), so the deck array is built back-to-front from the
 // order we want the cards to come out in.
-function stackDeck (drawOrder) {
-  deckRef.cards = drawOrder
-    .map((value) => ({ value, suit: 'spade' }))
-    .reverse()
+function stackDeck (drawOrder: CardValue[]) {
+  deckRef.cards = drawOrder.map((value) => ({ value, suit: 'spade' as const })).reverse()
 }
 
-async function draw (wrapper, times = 1) {
+function many (count: number, value: CardValue): CardValue[] {
+  return Array.from({ length: count }, () => value)
+}
+
+async function draw (wrapper: VueWrapper, times = 1) {
   for (let i = 0; i < times; i++) {
     await wrapper.find('.card').trigger('click')
   }
@@ -50,7 +53,7 @@ describe('game flow', () => {
   it('wraps the count from K back to A', async () => {
     // Count runs A,2..K,A. 'A' cards are safe except when the count is on A.
     // The trailing card keeps the deck non-empty so draw 14 is not a win.
-    stackDeck(['2', ...Array(12).fill('A'), '2', 'K'])
+    stackDeck(['2', ...many(12, 'A'), '2', 'K'])
     const wrapper = mount(App)
 
     await draw(wrapper, 13)
@@ -89,16 +92,18 @@ describe('game flow', () => {
   })
 
   it('reshuffles a full deck when you click after losing', async () => {
-    stackDeck(['A', ...Array(51).fill('K')])
+    stackDeck(['A', ...many(51, 'K')])
     const wrapper = mount(App)
 
     await draw(wrapper)
     expect(wrapper.text()).toContain('You lost with 51 to go!')
 
-    // The click after a loss resets before drawing, so the draw count restarts
-    // at 1 and the deck is back to 52 rather than continuing to deplete.
+    // Re-stack with a safe first card so the post-loss click keeps playing.
+    // Seeing "1 down, 51 to go" proves reset() refilled the deck to 52 and
+    // restarted both the draw tally and the count.
+    stackDeck(many(52, 'K'))
     await draw(wrapper)
-    expect(wrapper.vm.drawn).toBe(1)
-    expect(wrapper.vm.remaining).toBe(51)
+    expect(wrapper.text()).toContain('1 down, 51 to go')
+    expect(wrapper.text()).toContain('"A"!')
   })
 })

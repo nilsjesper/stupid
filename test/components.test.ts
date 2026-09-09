@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import Card from '../src/components/Card.vue'
 import Status from '../src/components/Status.vue'
+import type { GameStatus } from '../src/types'
 
 describe('Card', () => {
   it('renders blank with no card and does not crash', () => {
@@ -25,7 +26,7 @@ describe('Card', () => {
 })
 
 describe('Status', () => {
-  const base = { currentValue: '', gameStatus: 'start', drawn: 0, remaining: 52 }
+  const base = { currentValue: '', gameStatus: 'start' as GameStatus, drawn: 0, remaining: 52 }
 
   it('prompts before the game starts', () => {
     const wrapper = mount(Status, { props: base })

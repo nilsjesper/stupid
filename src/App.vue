@@ -10,71 +10,60 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed, ref } from 'vue'
 import Status from './components/Status.vue'
 import Card from './components/Card.vue'
-import { createDeck, VALUES } from './deck.js'
+import { createDeck, VALUES, type Card as PlayingCard, type CardValue } from './deck'
+import type { GameStatus } from './types'
 
-export default {
-  name: 'App',
+const deck = ref<PlayingCard[]>([])
+const countIdx = ref(-1)
+const currentValue = ref<CardValue | ''>('')
+const currentCard = ref<PlayingCard | null>(null)
+const drawn = ref(0)
+const gameStatus = ref<GameStatus>('start')
 
-  components: { Status, Card },
+const remaining = computed(() => deck.value.length)
 
-  data () {
-    return {
-      deck: [],
-      countIdx: -1,
-      currentValue: '',
-      currentCard: null,
-      drawn: 0,
-      gameStatus: 'start'
-    }
-  },
+function reset () {
+  deck.value = createDeck()
+  countIdx.value = -1
+  currentValue.value = ''
+  currentCard.value = null
+  drawn.value = 0
+}
 
-  computed: {
-    remaining () {
-      return this.deck.length
-    }
-  },
+// One click = one draw. The spoken count cycles A..K forever; if it lands on
+// the value you just drew, you lose. Empty the deck without a collision and
+// you win.
+function newCard () {
+  if (gameStatus.value === 'win' || gameStatus.value === 'lose') {
+    reset()
+  }
 
-  created () {
-    this.reset()
-  },
+  const card = deck.value.pop()
+  // Unreachable: the deck is refilled by reset() above and 'win' fires the
+  // moment it empties, so it is never empty here. Guards pop()'s T | undefined.
+  if (!card) return
 
-  methods: {
-    // One click = one draw. The spoken count cycles A..K forever; if it lands
-    // on the value you just drew, you lose. Empty the deck without a collision
-    // and you win.
-    newCard () {
-      if (this.gameStatus === 'win' || this.gameStatus === 'lose') {
-        this.reset()
-      }
+  gameStatus.value = 'playing'
+  currentCard.value = card
+  drawn.value++
 
-      this.gameStatus = 'playing'
-      this.currentCard = this.deck.pop()
-      this.drawn++
+  countIdx.value = (countIdx.value + 1) % VALUES.length
+  currentValue.value = VALUES[countIdx.value]
 
-      this.countIdx = (this.countIdx + 1) % VALUES.length
-      this.currentValue = VALUES[this.countIdx]
-
-      // A collision on the final card is still a loss. The pre-Vite version
-      // checked win second and so overwrote the loss with a win.
-      if (this.currentValue === this.currentCard.value) {
-        this.gameStatus = 'lose'
-      } else if (this.deck.length === 0) {
-        this.gameStatus = 'win'
-      }
-    },
-
-    reset () {
-      this.deck = createDeck()
-      this.countIdx = -1
-      this.currentValue = ''
-      this.currentCard = null
-      this.drawn = 0
-    }
+  // A collision on the final card is still a loss. The pre-Vite version
+  // checked win second and so overwrote the loss with a win.
+  if (currentValue.value === card.value) {
+    gameStatus.value = 'lose'
+  } else if (deck.value.length === 0) {
+    gameStatus.value = 'win'
   }
 }
+
+reset()
 </script>
 
 <style>

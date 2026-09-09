@@ -5,37 +5,24 @@
   </div>
 </template>
 
-<script>
-const SYMBOLS = {
+<script setup lang="ts">
+import { computed } from 'vue'
+import type { Card, Suit } from '../deck'
+
+const SYMBOLS: Record<Suit, string> = {
   diamond: '♦️',
   heart: '♥︎',
   club: '♣️',
   spade: '♠️'
 }
 
-export default {
-  name: 'Card',
+// null before the first draw, which renders a blank card face.
+const props = withDefaults(defineProps<{ card?: Card | null }>(), { card: null })
 
-  props: {
-    // null before the first draw, which renders a blank card face.
-    card: {
-      type: Object,
-      default: null
-    }
-  },
+defineEmits<{ draw: [] }>()
 
-  emits: ['draw'],
-
-  computed: {
-    suit () {
-      return this.card ? this.card.suit : ''
-    },
-
-    symbol () {
-      return this.card ? SYMBOLS[this.card.suit] : ''
-    }
-  }
-}
+const suit = computed(() => (props.card ? props.card.suit : ''))
+const symbol = computed(() => (props.card ? SYMBOLS[props.card.suit] : ''))
 </script>
 
 <style scoped>

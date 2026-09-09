@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createDeck, SUITS, VALUES } from '../src/deck.js'
+import { createDeck, SUITS, VALUES } from '../src/deck'
 
 describe('createDeck', () => {
   it('builds a full 52-card deck', () => {

@@ -17,17 +17,15 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'Status',
+<script setup lang="ts">
+import type { GameStatus } from '../types'
 
-  props: {
-    currentValue: { type: String, required: true },
-    gameStatus: { type: String, required: true },
-    drawn: { type: Number, required: true },
-    remaining: { type: Number, required: true }
-  }
-}
+defineProps<{
+  currentValue: string
+  gameStatus: GameStatus
+  drawn: number
+  remaining: number
+}>()
 </script>
 
 <style scoped>
