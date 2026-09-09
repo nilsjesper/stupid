@@ -9,7 +9,7 @@
       <div class="status" aria-hidden="true">"{{ currentValue }}"!</div>
       <div class="sr-only">Count: {{ currentValue }}</div>
     </template>
-    <div v-else>Click the card to begin...</div>
+    <div v-else>Click the card or press space to begin...</div>
 
     <div v-if="gameStatus === 'playing'" class="playing">
       <p>{{ drawn }} down, {{ remaining }} to go....</p>

@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import Status from './components/Status.vue'
 import Card from './components/Card.vue'
 import { createDeck, VALUES, type Card as PlayingCard, type CardValue } from './deck'
@@ -67,6 +67,24 @@ function newCard () {
     gameStatus.value = 'win'
   }
 }
+
+// Space draws from anywhere on the page, so you can mash it without first
+// tabbing to the card. It is a party game; reaching for the mouse each turn
+// breaks the rhythm.
+function onKeydown (event: KeyboardEvent) {
+  if (event.code !== 'Space') return
+
+  // A focused <button> already activates itself on Space. Handling it here as
+  // well would draw two cards from one keypress.
+  if (event.target instanceof HTMLButtonElement) return
+
+  // Space scrolls the page by default.
+  event.preventDefault()
+  newCard()
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 reset()
 </script>

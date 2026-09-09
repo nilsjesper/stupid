@@ -50,7 +50,7 @@ describe('Status', () => {
 
   it('prompts before the game starts', () => {
     const wrapper = mount(Status, { props: base })
-    expect(wrapper.text()).toContain('Click the card to begin')
+    expect(wrapper.text()).toContain('Click the card or press space to begin')
   })
 
   it('announces changes through a live region', () => {

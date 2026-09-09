@@ -69,6 +69,27 @@ and `test/game.test.ts` pins it.
 - `.status-panel` uses `min-height`, not `height`. A fixed height made the large
   win/lose text overflow onto the card on narrow screens.
 
+## Input
+
+Two ways to draw, and they must not collide:
+
+- Clicking the card, which is a `<button>`, so Enter and Space activate it
+  natively whenever it has focus.
+- Pressing Space anywhere on the page, via a `window` keydown listener in
+  `App.vue`. On load focus sits on `<body>`, so without this Space would scroll
+  the page instead of drawing.
+
+`onKeydown` therefore **returns early when `event.target` is a
+`HTMLButtonElement`**. Without that guard, one press with the card focused
+draws twice: the global handler on keydown, then the button's native activation.
+It also calls `preventDefault()` in the non-button case, or Space scrolls.
+
+That window listener has a consequence for tests: **every mounted `App` must be
+unmounted**, or its listener survives into later tests and draws extra cards.
+`test/game.test.ts` mounts through a tracked `mountApp()` helper with an
+`afterEach` that unmounts everything. The one test that unmounts by hand
+deliberately bypasses the tracking to avoid a double unmount.
+
 ## Accessibility
 
 The card is a real `<button>`, so Enter and Space work with no key handlers, and

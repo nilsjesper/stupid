@@ -1,8 +1,9 @@
 # stupid
 
-A browser version of the card game **Stupid**. Click the card to draw. A count
-runs A, 2, 3 … K and starts over. If the count lands on the value of the card
-you just drew, you lose. Empty the deck without a collision and you win.
+A browser version of the card game **Stupid**. Click the card or hit the space
+bar to draw. A count runs A, 2, 3 … K and starts over. If the count lands on the
+value of the card you just drew, you lose. Empty the deck without a collision
+and you win.
 
 Vue 3 + TypeScript + Vite. No backend.
 
