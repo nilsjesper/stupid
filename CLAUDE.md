@@ -94,10 +94,19 @@ TypeScript majors for this reason. Revisit when vue-tsc supports TS 7.
 
 ## CI
 
-`.github/workflows/ci.yml` runs `npm ci`, lint, typecheck, test, build on every
-branch and PR. `.github/workflows/deploy.yml` publishes `dist/` to GitHub Pages
-on pushes to `master`. `base: './'` in the Vite config keeps asset paths
-relative so the build works from a Pages subpath.
+`.github/workflows/ci.yml` runs `npm ci`, lint, typecheck, test and build. It
+triggers on `pull_request` and is also a reusable `workflow_call`, so the check
+steps are defined in exactly one place.
+
+`.github/workflows/deploy.yml` publishes `dist/` to GitHub Pages on pushes to
+`master`, but only after calling `ci.yml` as a gating `check` job — a commit
+that fails a test or `vue-tsc` must never reach the public URL. `base: './'` in
+the Vite config keeps asset paths relative so the build works from a Pages
+subpath.
+
+Note the deliberate absence of a `push` trigger on `ci.yml`: with both a
+wildcard `push` and `pull_request`, every same-repo PR ran the whole matrix
+twice. CI signal for a branch now comes from its PR.
 
 ## Known gaps
 

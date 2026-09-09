@@ -26,12 +26,17 @@ const gameStatus = ref<GameStatus>('start')
 
 const remaining = computed(() => deck.value.length)
 
+// Resets every piece of state, including gameStatus, so it is safe to call
+// from anywhere. newCard() overwrites gameStatus with 'playing' immediately
+// after; without the assignment here, any other caller would leave the
+// win/lose banner rendered over a freshly shuffled deck.
 function reset () {
   deck.value = createDeck()
   countIdx.value = -1
   currentValue.value = ''
   currentCard.value = null
   drawn.value = 0
+  gameStatus.value = 'start'
 }
 
 // One click = one draw. The spoken count cycles A..K forever; if it lands on

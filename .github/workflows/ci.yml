@@ -1,9 +1,9 @@
 name: CI
 
 on:
-  push:
-    branches: ['**']
   pull_request:
+  # Called as a gate by deploy.yml, so the checks live in exactly one place.
+  workflow_call:
 
 jobs:
   check:
