@@ -1,82 +1,80 @@
 <template>
   <div id="app">
-    <hello :current-value="currentValue" :game-status="gameStatus" :deck="deck"></hello>
-    <card v-on:click="newCard" :picked-card="currentCard"></card>
+    <Status
+      :current-value="currentValue"
+      :game-status="gameStatus"
+      :drawn="drawn"
+      :remaining="remaining"
+    />
+    <Card :card="currentCard" @draw="newCard" />
   </div>
 </template>
 
 <script>
-// get our components
-import Hello from './components/Hello'
-import Card from './components/Card'
-import Picker from './components/Picker'
-
-// generating a deck
-const cards = require('cards')
-const deck = new cards.PokerDeck()
-
-// Shuffle the deck
-deck.shuffleAll()
+import Status from './components/Status.vue'
+import Card from './components/Card.vue'
+import { createDeck, VALUES } from './deck.js'
 
 export default {
-  name: 'stupid',
-  components: {
-    Hello,
-    Card,
-    Picker
-  },
+  name: 'App',
+
+  components: { Status, Card },
+
   data () {
     return {
-      currentIdx: -1,
+      deck: [],
+      countIdx: -1,
       currentValue: '',
-      cardOrder: cardOrder,
-      deck: deck,
-      currentCard: '',
+      currentCard: null,
+      drawn: 0,
       gameStatus: 'start'
     }
   },
+
+  computed: {
+    remaining () {
+      return this.deck.length
+    }
+  },
+
+  created () {
+    this.reset()
+  },
+
   methods: {
-    newCard: function () {
-      // If they've hit an endpoint, reshuffle & restart.
+    // One click = one draw. The spoken count cycles A..K forever; if it lands
+    // on the value you just drew, you lose. Empty the deck without a collision
+    // and you win.
+    newCard () {
       if (this.gameStatus === 'win' || this.gameStatus === 'lose') {
         this.reset()
       }
 
       this.gameStatus = 'playing'
-      this.currentCard = deck.draw()
-      this.setCount()
-      this.checkSame()
+      this.currentCard = this.deck.pop()
+      this.drawn++
 
-      // check to see if they've drawn the last card!
-      if (deck.deck.length === 0) {
-        this.gameStatus = 'win'
-      }
-      return true
-    },
-    setCount: function () {
-      if (this.currentIdx === cardOrder.length - 1) {
-        this.currentIdx = 0
-      } else {
-        this.currentIdx++
-      }
-      this.currentValue = cardOrder[this.currentIdx]
-    },
-    checkSame: function () {
+      this.countIdx = (this.countIdx + 1) % VALUES.length
+      this.currentValue = VALUES[this.countIdx]
+
+      // A collision on the final card is still a loss. The pre-Vite version
+      // checked win second and so overwrote the loss with a win.
       if (this.currentValue === this.currentCard.value) {
         this.gameStatus = 'lose'
+      } else if (this.deck.length === 0) {
+        this.gameStatus = 'win'
       }
     },
-    reset: function () {
-      this.deck.shuffleAll()
-      this.currentValue = ''
-      this.currentIdx = -1
-    }
 
+    reset () {
+      this.deck = createDeck()
+      this.countIdx = -1
+      this.currentValue = ''
+      this.currentCard = null
+      this.drawn = 0
+    }
   }
 }
-
-const cardOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-
 </script>
 
 <style>
@@ -86,7 +84,6 @@ const cardOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  font-size:16px;
+  font-size: 16px;
 }
-
 </style>

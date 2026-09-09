@@ -1,27 +1,22 @@
 # stupid
 
-> A Vue.js project
+A browser version of the card game **Stupid**. Click the card to draw. A count
+runs A, 2, 3 … K and starts over. If the count lands on the value of the card
+you just drew, you lose. Empty the deck without a collision and you win.
 
-## Build Setup
+Vue 3 + Vite. No backend.
+
+## Setup
 
 ``` bash
-# install dependencies
 npm install
 
-# serve with hot reload at localhost:8080
-npm run dev
-
-# build for production with minification
-npm run build
-
-# run unit tests
-npm run unit
-
-# run e2e tests
-npm run e2e
-
-# run all tests
-npm test
+npm run dev        # dev server with hot reload (http://localhost:5173)
+npm run build      # production bundle into dist/
+npm run preview    # serve the built dist/ locally
+npm test           # unit tests (vitest)
+npm run test:watch # unit tests in watch mode
+npm run lint       # eslint
 ```
 
-For detailed explanation on how things work, checkout the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
+Requires Node 20 or newer.
